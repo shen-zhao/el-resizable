@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    #box {
+      width: 100px;
+      height: 100px;
+      margin: 100px auto;
+      background: blue;
+    }
+  </style>
+</head>
+<body>
+<div id="box"></div>
+<script src="../../dist/index.js"></script>
+<script>
+var box = document.getElementById('box');
+var styles = window.getComputedStyle(box);
+var width = parseInt(styles.getPropertyValue('width'));
+var height = parseInt(styles.getPropertyValue('height'));
+new Resizable(box, {
+  onMove(offset) {
+    const { width: w, height: h } = offset;
+    Object.assign(box.style, {
+      width: w + width + 'px',
+      height: h + height + 'px'
+    })
+  },
+  onEnd(offset) {
+    const { width: w, height: h } = offset;
+    Object.assign(box.style, {
+      width: w + width + 'px',
+      height: h + height + 'px'
+    });
+
+    width += w;
+    height += h;
+  }
+})
+</script>
+</body>
+</html>

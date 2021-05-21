@@ -1,0 +1,24 @@
+{
+  "name": "el-resizable",
+  "version": "0.0.1",
+  "description": "resizable",
+  "main": "index.js",
+  "scripts": {
+    "dev": "rollup -c -w",
+    "build": "rollup -c",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "dom",
+    "resizable"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^13.0.0",
+    "rollup": "^2.48.0"
+  },
+  "dependencies": {
+    "throttle-debounce": "^3.0.1"
+  }
+}
