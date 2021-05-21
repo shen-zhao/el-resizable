@@ -1,5 +1,11 @@
 # el-resizable(WIP)
 
+# TODO
+- [ ] refact core
+- [ ] Vue Component
+- [ ] React Component
+- [ ] improve build
+
 # usage
 ```html
 <style>
