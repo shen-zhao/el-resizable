@@ -48,6 +48,8 @@ export default class Resizable {
     if (this.targetCSSStyle.getPropertyValue('position') === 'static') {
       target.style.position = 'relative'
     }
+    // create handler
+    this.handler = this.createHandler();
     // create handle dom and bind event
     handles.forEach(dir => {
       this.createHandle(dir)
@@ -62,7 +64,7 @@ export default class Resizable {
     Object.defineProperty(handle, HANDLE_DIR_KEY, {
       value: dir
     })
-    this.bindEvent(handle, this.createHandler(handle))
+    this.bindEvent(handle, this.handler)
     this.target.appendChild(handle)
     this._handles.push(handle)
   }
@@ -91,7 +93,7 @@ export default class Resizable {
         offsetX: 0,
         offsetY: 0
       }
-      handler(status, payload, e)
+      handler(hd, status, payload, e)
       document.addEventListener(EVENT.MOVE, handleMove)
       document.addEventListener(EVENT.END, handleEnd)
     }
@@ -120,7 +122,7 @@ export default class Resizable {
         offsetY: ry - sy
       }
       this.setCursorStyle(hd, payload, true)
-      handler(status, payload, e)
+      handler(hd, status, payload, e)
     });
     const handleEnd = e => {
       e = getEvent(e);
@@ -132,7 +134,7 @@ export default class Resizable {
         offsetY: ey - sy
       }
       this.setCursorStyle(hd, payload, false)
-      handler(status, payload, e)
+      handler(hd, status, payload, e)
       document.removeEventListener(EVENT.MOVE, handleMove)
       document.removeEventListener(EVENT.END, handleEnd)
     }
@@ -146,20 +148,20 @@ export default class Resizable {
    * @returns warper handler
    * @memberof Resizable
    */
-  createHandler(handle) {
+  createHandler() {
     const {
       callback,
       onStart,
       onMove,
       onEnd,
     } = this.options
-    const dir = handle[HANDLE_DIR_KEY]
 
-    return (status, offsetConfig, e) => {
+    return (handle, status, offsetConfig, e) => {
       const {
         offsetX,
         offsetY
       } = offsetConfig
+      const dir = handle[HANDLE_DIR_KEY]
 
       let defaultDiff = { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 }
       let diff
