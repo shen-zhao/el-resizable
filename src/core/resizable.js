@@ -13,6 +13,7 @@ import {
 } from '../utils'
 import { throttle } from 'throttle-debounce'
 
+const doc = document
 export default class Resizable {
   static START = STATUS.START
   static MOVE = STATUS.MOVE
@@ -22,7 +23,7 @@ export default class Resizable {
       throw new TypeError('The target parameter is required')
     }
     this.target = typeof target === 'string'
-      ? document.querySelector(target)
+      ? doc.querySelector(target)
       : target
     this.options = Object.assign({
       handles: 'all',
@@ -63,7 +64,7 @@ export default class Resizable {
   }
 
   createHandle(dir) {
-    const handle = document.createElement('div')
+    const handle = doc.createElement('div')
     handle.style.position = 'absolute'
     handle.style.userSelect = 'none'
     Object.assign(handle.style, this.handleStyleConfig[dir])
@@ -88,8 +89,8 @@ export default class Resizable {
     const handleStart = ev => {
       ev = getEvent(ev)
       status = STATUS.START
-      clientW = document.documentElement.clientWidth
-      clientH = document.documentElement.clientHeight
+      clientW = doc.documentElement.clientWidth
+      clientH = doc.documentElement.clientHeight
       const { clientX, clientY } = ev;
       startX = clientX
       startY = clientY
@@ -98,8 +99,8 @@ export default class Resizable {
         offsetY: 0
       }
       handler(handle, status, payload, ev)
-      document.addEventListener(EVENT.MOVE, handleMove)
-      document.addEventListener(EVENT.END, handleEnd)
+      doc.addEventListener(EVENT.MOVE, handleMove)
+      doc.addEventListener(EVENT.END, handleEnd)
     }
     const handleMove = throttle(12, ev => {
       ev = getEvent(ev);
@@ -138,8 +139,8 @@ export default class Resizable {
       }
       this.setCursorStyle(handle, payload, false)
       handler(handle, status, payload, ev)
-      document.removeEventListener(EVENT.MOVE, handleMove)
-      document.removeEventListener(EVENT.END, handleEnd)
+      doc.removeEventListener(EVENT.MOVE, handleMove)
+      doc.removeEventListener(EVENT.END, handleEnd)
     }
 
     handle.addEventListener(EVENT.START, handleStart)
