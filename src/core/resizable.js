@@ -86,8 +86,7 @@ export default class Resizable {
     const half = this.half
 
     const handleStart = ev => {
-      ev = getEvent(ev);
-      this.setHandleStyle(handle, true)
+      ev = getEvent(ev)
       status = STATUS.START
       clientW = document.documentElement.clientWidth
       clientH = document.documentElement.clientHeight
@@ -132,7 +131,6 @@ export default class Resizable {
     const handleEnd = ev => {
       ev = getEvent(ev);
       status = STATUS.END
-      this.setHandleStyle(handle, false)
       const { clientX: ex, clientY: ey } = ev
       const payload = {
         offsetX: ex - startX,
@@ -220,18 +218,6 @@ export default class Resizable {
         default:
       }
       handler(posDiff, ev)
-    }
-  }
-
-  setHandleStyle(handle, active) {
-    if (active) {
-      handle.style.zIndex = '9999'
-      handle.style.backgroundColor = 'rgba(86, 159, 248, 0.2)'
-      handle.style.filter = 'blur(3px)'
-    } else {
-      handle.style.zIndex = ''
-      handle.style.backgroundColor = ''
-      handle.style.filter = ''
     }
   }
 
