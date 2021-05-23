@@ -3,7 +3,8 @@ import {
   EVENT,
   STATUS,
   RESIZE_HANDLE_STORE_KEY,
-  HANDLE_DIR_KEY,
+  HANDLE_DIRECTION_KEY,
+  HANDLE_LISTENER_REMOVE_KEY,
   defaultHandles,
   defaultThreshold,
   createHandleStyleConfig,
@@ -17,7 +18,12 @@ export default class Resizable {
   static MOVE = STATUS.MOVE
   static END = STATUS.END
   constructor(target, options) {
-    this.target = target
+    if (target == null) {
+      throw new TypeError('The target parameter is required')
+    }
+    this.target = typeof target === 'string'
+      ? document.querySelector(target)
+      : target
     this.options = Object.assign({
       handles: 'all',
       callback: noop,
@@ -61,85 +67,88 @@ export default class Resizable {
     handle.style.position = 'absolute'
     handle.style.userSelect = 'none'
     Object.assign(handle.style, this.handleStyleConfig[dir])
-    Object.defineProperty(handle, HANDLE_DIR_KEY, {
+    Object.defineProperty(handle, HANDLE_DIRECTION_KEY, {
       value: dir
     })
-    this.bindEvent(handle, this.handler)
+    handle[HANDLE_LISTENER_REMOVE_KEY] = this.bindEvent(handle, this.handler)
     this.target.appendChild(handle)
     this._handles.push(handle)
   }
 
   /**
    * bind handle event
-   * @param {handle} hd
+   * @param {handle} handle
    * @param {Function} handler
    * @memberof Resizable
    */
-  bindEvent(hd, handler) {
-    let sx, sy, status, clientW, clientH
+  bindEvent(handle, handler) {
+    let startX, startY, status, clientW, clientH
     const half = this.half
 
-    const handleStart = e => {
-      e = getEvent(e);
-      const rect = hd.getBoundingClientRect()
-      this.setHandleStyle(hd, true)
+    const handleStart = ev => {
+      ev = getEvent(ev);
+      this.setHandleStyle(handle, true)
       status = STATUS.START
       clientW = document.documentElement.clientWidth
       clientH = document.documentElement.clientHeight
-      const { x, y } = rect
-      sx = x + half
-      sy = y + half
+      const { clientX, clientY } = ev;
+      startX = clientX
+      startY = clientY
       const payload = {
         offsetX: 0,
         offsetY: 0
       }
-      handler(hd, status, payload, e)
+      handler(handle, status, payload, ev)
       document.addEventListener(EVENT.MOVE, handleMove)
       document.addEventListener(EVENT.END, handleEnd)
     }
-    const handleMove = throttle(12, e => {
-      e = getEvent(e);
+    const handleMove = throttle(12, ev => {
+      ev = getEvent(ev);
       if (status === STATUS.END) return
       status = STATUS.MOVE
-      let { clientX: rx, clientY: ry } = e
+      let { clientX: moveX, clientY: moveY } = ev
       // 处理边界
       if (this.options.bound) {
-        if (rx <= half) {
-          rx = half;
+        if (moveX <= half) {
+          moveX = half;
         }
-        if (ry <= half) {
-          ry = half;
+        if (moveY <= half) {
+          moveY = half;
         }
-        if (rx >= clientW - half) {
-          rx = clientW - half;
+        if (moveX >= clientW - half) {
+          moveX = clientW - half;
         }
-        if (ry >= clientH - half) {
-          ry = clientH - half;
+        if (moveY >= clientH - half) {
+          moveY = clientH - half;
         }
       }
       const payload = {
-        offsetX: rx - sx,
-        offsetY: ry - sy
+        offsetX: moveX - startX,
+        offsetY: moveY - startY
       }
-      this.setCursorStyle(hd, payload, true)
-      handler(hd, status, payload, e)
+      this.setCursorStyle(handle, payload, true)
+      handler(handle, status, payload, ev)
     });
-    const handleEnd = e => {
-      e = getEvent(e);
+    const handleEnd = ev => {
+      ev = getEvent(ev);
       status = STATUS.END
-      this.setHandleStyle(hd, false)
-      const { clientX: ex, clientY: ey } = e
+      this.setHandleStyle(handle, false)
+      const { clientX: ex, clientY: ey } = ev
       const payload = {
-        offsetX: ex - sx,
-        offsetY: ey - sy
+        offsetX: ex - startX,
+        offsetY: ey - startY
       }
-      this.setCursorStyle(hd, payload, false)
-      handler(hd, status, payload, e)
+      this.setCursorStyle(handle, payload, false)
+      handler(handle, status, payload, ev)
       document.removeEventListener(EVENT.MOVE, handleMove)
       document.removeEventListener(EVENT.END, handleEnd)
     }
 
-    hd.addEventListener(EVENT.START, handleStart)
+    handle.addEventListener(EVENT.START, handleStart)
+
+    return () => {
+      handle.removeEventListener(EVENT.START, handleStart)
+    }
   }
 
   /**
@@ -155,46 +164,48 @@ export default class Resizable {
       onMove,
       onEnd,
     } = this.options
+    
 
-    return (handle, status, offsetConfig, e) => {
+    return (handle, status, offsetConfig, ev) => {
       const {
         offsetX,
         offsetY
       } = offsetConfig
-      const dir = handle[HANDLE_DIR_KEY]
+      const dir = handle[HANDLE_DIRECTION_KEY]
+      const [n, ne, e, se, s, sw, w, nw] = defaultHandles
 
       let defaultDiff = { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 }
       let diff
       switch (dir) {
-        case 't':
+        case n:
           diff = { top: offsetY, height: -offsetY }
           break
-        case 'rt':
+        case ne:
           diff = { top: offsetY, right: -offsetX, width: offsetX, height: -offsetY }
           break
-        case 'r':
+        case e:
           diff = { right: -offsetX, width: offsetX }
           break
-        case 'rb':
+        case se:
           diff = { right: -offsetX, bottom: -offsetY, width: offsetX, height: offsetY }
           break
-        case 'b':
+        case s:
           diff = { bottom: -offsetY, height: offsetY }
           break
-        case 'lb':
+        case sw:
           diff = { bottom: -offsetY, left: offsetX, width: -offsetX, height: offsetY }
           break
-        case 'l':
+        case w:
           diff = { left: offsetX, width: -offsetX }
           break
-        case 'lt':
+        case nw:
           diff = { top: offsetY, left: offsetX, width: -offsetX, height: -offsetY }
           break
         default:
       }
       
       const posDiff = Object.assign(defaultDiff, diff)
-      callback(status, posDiff, e)
+      callback(status, posDiff, ev)
       let handler
       switch (status) {
         case STATUS.START:
@@ -208,46 +219,47 @@ export default class Resizable {
           break
         default:
       }
-      handler(posDiff, e)
+      handler(posDiff, ev)
     }
   }
 
-  setHandleStyle(hd, active) {
+  setHandleStyle(handle, active) {
     if (active) {
-      hd.style.zIndex = '9999'
-      hd.style.backgroundColor = 'rgba(86, 159, 248, 0.2)'
-      hd.style.filter = 'blur(3px)'
+      handle.style.zIndex = '9999'
+      handle.style.backgroundColor = 'rgba(86, 159, 248, 0.2)'
+      handle.style.filter = 'blur(3px)'
     } else {
-      hd.style.zIndex = ''
-      hd.style.backgroundColor = ''
-      hd.style.filter = ''
+      handle.style.zIndex = ''
+      handle.style.backgroundColor = ''
+      handle.style.filter = ''
     }
   }
 
   setCursorStyle(handle, offset, isMove) {
-    const dir = handle[HANDLE_DIR_KEY]
+    const dir = handle[HANDLE_DIRECTION_KEY]
+    const [n, ne, e, se, s, sw, w, nw] = defaultHandles
     let cursor = this.handleStyleConfig[dir].cursor
     if (isMove) {
       const { offsetX, offsetY } = offset
       switch (dir) {
-        case 'l':
-        case 'r':
+        case w:
+        case e:
           cursor = offsetX > 0 ? 'w-resize' : 'e-resize'
           break
-        case 't':
-        case 'b':
+        case n:
+        case s:
           cursor = offsetY > 0 ? 'n-resize' : 's-resize'
           break
-        case 'rt':
-        case 'lb':
+        case ne:
+        case sw:
           if (offsetX > 0 && offsetY < 0) {
             cursor = 'sw-resize'
           } else if (offsetX < 0 && offsetY > 0) {
             cursor = 'ne-resize'
           }
           break
-        case 'lt':
-        case 'rb':
+        case nw:
+        case se:
           if (offsetX > 0 && offsetY > 0) {
             cursor = 'nw-resize'
           } else if (offsetX < 0 && offsetY < 0) {
@@ -257,23 +269,6 @@ export default class Resizable {
       }
     }
     handle.style.cursor = cursor
-  }
-
-  cleanup() {
-    const { target } = this
-    if (RESIZE_HANDLE_STORE_KEY in target) {
-      const handles = target[RESIZE_HANDLE_STORE_KEY]
-      if (Array.isArray(handles)) {
-        handles.forEach(child => {
-          target.removeChild(child)
-        })
-      }
-      delete target[RESIZE_HANDLE_STORE_KEY]
-    }
-  }
-
-  destroy() {
-    this.cleanup()
   }
 
   normalizeOptions(options) {
@@ -295,5 +290,23 @@ export default class Resizable {
     })
     // deal handle size
     this.half = threshold >> 1 || defaultThreshold >> 1
+  }
+
+  cleanup() {
+    const { target } = this
+    if (RESIZE_HANDLE_STORE_KEY in target) {
+      const handles = target[RESIZE_HANDLE_STORE_KEY]
+      if (Array.isArray(handles)) {
+        handles.forEach(handle => {
+          handle[HANDLE_LISTENER_REMOVE_KEY]()
+          target.removeChild(handle)
+        })
+      }
+      delete target[RESIZE_HANDLE_STORE_KEY]
+    }
+  }
+
+  destroy() {
+    this.cleanup()
   }
 }

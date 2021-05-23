@@ -23,6 +23,7 @@ var styles = window.getComputedStyle(box);
 var width = parseInt(styles.getPropertyValue('width'));
 var height = parseInt(styles.getPropertyValue('height'));
 new Resizable(box, {
+  bound: true,
   onMove(offset) {
     const { width: w, height: h } = offset;
     Object.assign(box.style, {
